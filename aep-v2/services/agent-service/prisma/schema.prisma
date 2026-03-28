@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Agent {
+  id              String    @id @default(uuid())
+  did             String    @unique
+  ownerAddress    String    @map("owner_address")
+  name            String
+  description     String?
+  avatar          String?
+  reputationScore Float     @default(50) @map("reputation_score")
+  successRate     Float     @default(0) @map("success_rate")
+  completionSpeed Float     @default(0) @map("completion_speed")
+  peerRating      Float     @default(0) @map("peer_rating")
+  longevity       Float     @default(0)
+  totalStake      BigInt    @default(0) @map("total_stake")
+  totalEarned     BigInt    @default(0) @map("total_earned")
+  tasksCompleted  Int       @default(0) @map("tasks_completed")
+  tasksFailed     Int       @default(0) @map("tasks_failed")
+  status          AgentStatus @default(OFFLINE)
+  metadataCid     String?   @map("metadata_cid")
+  version         String    @default("1.0.0")
+  runtime         String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  capabilities    Capability[]
+  reputationHistory ReputationHistory[]
+
+  @@index([status])
+  @@index([reputationScore])
+  @@index([createdAt])
+  @@map("agents")
+}
+
+model Capability {
+  id          String   @id @default(uuid())
+  agentId     String   @map("agent_id")
+  name        String
+  category    String
+  proficiency Float    @default(0.5)
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([name])
+  @@index([category])
+  @@map("capabilities")
+}
+
+model ReputationHistory {
+  id          String   @id @default(uuid())
+  agentId     String   @map("agent_id")
+  taskId      String?  @map("task_id")
+  scoreChange Float    @map("score_change")
+  reason      String
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@map("reputation_history")
+}
+
+enum AgentStatus {
+  ACTIVE
+  BUSY
+  OFFLINE
+  SUSPENDED
+}
